@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#103c36" />
+    <title>PrepPal — Procedure prep, made clear</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="upload.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="phone" aria-label="PrepPal mobile app prototype">
+        <header class="topbar">
+          <div class="brand"><span class="brand-mark">✦</span> PrepPal</div>
+          <button class="avatar" aria-label="Profile">K</button>
+        </header>
+
+        <section class="screen active" data-screen="home">
+          <p class="eyebrow">GOOD MORNING, KELVIN</p>
+          <h1>Let’s make prep<br />feel simple.</h1>
+          <p class="lede">Clear next steps from your doctor’s instructions.</p>
+
+          <article class="appointment-card">
+            <div class="card-top"><span class="status">UPCOMING</span><span>Wed, Sep 16</span></div>
+            <h2>Colonoscopy</h2>
+            <p>8:00 AM · Duke Digestive Health</p>
+            <div class="countdown"><strong>22</strong><span>days until<br />your procedure</span></div>
+            <button class="primary wide" data-go="plan">View my prep plan <span>→</span></button>
+          </article>
+
+          <div class="section-title"><h2>How PrepPal helps</h2></div>
+          <div class="benefits">
+            <div><span>⌁</span><p>Turns notes into<br />simple steps</p></div>
+            <div><span>◷</span><p>Keeps your prep<br />on schedule</p></div>
+            <div><span>✉</span><p>Sends friendly<br />reminders</p></div>
+          </div>
+          <button class="text-button" data-go="scan">+ Add a doctor’s note</button>
+        </section>
+
+        <section class="screen" data-screen="scan">
+          <button class="back" data-go="home">← Back</button>
+          <p class="eyebrow">NEW PROCEDURE</p>
+          <h1>Bring your note<br />to life.</h1>
+          <p class="lede">Take a photo or choose a note. PrepPal will organize the important stuff.</p>
+          <div class="scan-card">
+            <img class="note-preview" id="note-preview" alt="Selected doctor note preview" hidden />
+            <div class="file-placeholder" id="file-placeholder" hidden>
+              <div class="file-placeholder-title" id="file-placeholder-title">FILE SELECTED</div>
+              <p id="file-placeholder-text">PrepPal accepts files, photos, and camera images.</p>
+            </div>
+            <div class="paper" id="sample-note">
+              <span class="paper-title">Duke Digestive Health</span>
+              <span>Patient: Kelvin Q.</span>
+              <span>Colonoscopy — Sept 16, 8:00 AM</span>
+              <span class="scribble">clear liquids day before</span>
+              <span class="scribble">no food after midnight</span>
+            </div>
+            <div class="scan-line"></div>
+          </div>
+          <p class="selected-file" id="selected-file">No note selected yet</p>
+          <div class="upload-actions">
+            <label class="upload-choice"><input id="camera-input" type="file" accept="image/*" capture="environment" /> <span>⌾</span>Camera</label>
+            <label class="upload-choice"><input id="photos-input" type="file" accept="image/*" /> <span>▧</span>Photos</label>
+            <label class="upload-choice"><input id="files-input" type="file" accept="image/*,.pdf" /> <span>⌑</span>Files & PDFs</label>
+          </div>
+          <button class="primary wide" id="analyze-note" disabled>Analyze note with AI <span>→</span></button>
+          <p class="fine-print">For this demo, use a made-up note. Do not upload real medical records.</p>
+        </section>
+
+        <section class="screen center" data-screen="processing">
+          <div class="sparkle">✦</div>
+          <p class="eyebrow">PREPPAL AI</p>
+          <h1 id="processing-title">Making your<br />instructions clear…</h1>
+          <div class="progress"><i></i></div>
+          <p class="lede">Finding dates, food instructions, and reminders.</p>
+        </section>
+
+        <section class="screen" data-screen="plan">
+          <button class="back" data-go="home">← Home</button>
+          <p class="eyebrow">YOUR PERSONALIZED PLAN</p>
+          <h1 id="procedure-title">Colonoscopy<br />prep plan</h1>
+          <div class="plan-meta"><span id="procedure-date">Wed, Sep 16 · 8:00 AM</span><span class="verified">✓ AI organized</span></div>
+          <div class="notice"><strong>Important:</strong> Your clinic’s instructions always come first. Call them with questions.</div>
+          <ol class="timeline" id="timeline">
+            <li><span class="dot">1</span><div><small>7 DAYS BEFORE</small><h3>Review your medications</h3><p>Ask your care team about blood thinners, diabetes medicine, or supplements.</p></div></li>
+            <li><span class="dot">2</span><div><small>DAY BEFORE · 8:00 AM</small><h3>Switch to clear liquids</h3><p>Water, clear broth, apple juice, tea, and gelatin are okay. Avoid red or purple drinks.</p></div></li>
+            <li><span class="dot">3</span><div><small>DAY BEFORE · 6:00 PM</small><h3>Start your bowel prep</h3><p>Follow the exact mixing and drinking instructions from your clinic.</p></div></li>
+            <li><span class="dot">4</span><div><small>PROCEDURE DAY · 12:00 AM</small><h3>Do not eat solid food</h3><p>Follow your clinic’s cutoff time for clear liquids.</p></div></li>
+          </ol>
+          <p class="extraction-note" id="extraction-note">Check the original note and confirm every instruction with your clinic.</p>
+          <button class="primary wide" data-go="reminders">Set up reminders <span>→</span></button>
+        </section>
+
+        <section class="screen" data-screen="reminders">
+          <button class="back" data-go="plan">← Prep plan</button>
+          <p class="eyebrow">REMINDER SETUP</p>
+          <h1>We’ll keep you<br />on track.</h1>
+          <p class="lede">Choose how you want PrepPal to remind you.</p>
+          <label class="field">Mobile number <input id="phone-number" type="tel" value="+13367401136" /></label>
+          <div class="toggle-row"><div><strong>Text message reminders</strong><p>Receive clear prep steps when they matter.</p></div><button class="toggle on" aria-label="Text reminders enabled"></button></div>
+          <div class="reminder-list">
+            <label><input type="checkbox" checked /> 7 days before: medication check</label>
+            <label><input type="checkbox" checked /> Day before: clear-liquid reminder</label>
+            <label><input type="checkbox" checked /> Evening before: prep reminder</label>
+          </div>
+          <button class="primary wide" data-go="message">Preview my first text <span>→</span></button>
+        </section>
+
+        <section class="screen message-screen" data-screen="message">
+          <button class="back" data-go="reminders">← Reminders</button>
+          <p class="eyebrow">TEXT MESSAGE PREVIEW</p>
+          <h1>Your reminder<br />is ready.</h1>
+          <div class="sms-phone">
+            <div class="sms-header"><span>‹</span><div class="sms-logo">✦</div><div><strong>PrepPal</strong><small>Text Message</small></div></div>
+            <div class="sms-body"><span class="sms-time">Today 9:00 AM</span><div class="bubble">Hi Kelvin! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.</div><span class="delivered">Delivered</span></div>
+          </div>
+          <button class="primary wide" id="send-demo">Send demo reminder <span>→</span></button>
+          <p class="fine-print" id="send-note">This prototype simulates a text—it does not send one.</p>
+        </section>
+
+        <nav class="nav"><button data-go="home" class="selected">⌂<span>Home</span></button><button data-go="plan">☷<span>Plan</span></button><button data-go="reminders">✉<span>Reminders</span></button></nav>
+      </section>
+      <aside class="demo-notes">
+        <span class="note-label">CAREER-FAIR DEMO</span>
+        <h2>Tell the story,<br />then show it.</h2>
+        <p>Open this on your phone and tap through the journey in under one minute.</p>
+        <ol><li>“Ever left a doctor’s office with handwritten instructions?”</li><li>“PrepPal turns them into an understandable plan.”</li><li>“Then it sends timely reminders so steps are not missed.”</li></ol>
+        <p class="small-note">Prototype data only. Not medical advice.</p>
+      </aside>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
