@@ -61,18 +61,19 @@
           <p class="selected-file" id="selected-file">No note selected yet</p>
           <div class="upload-actions">
             <label class="upload-choice"><input id="camera-input" type="file" accept="image/*" capture="environment" /> <span>⌾</span>Camera</label>
-            <label class="upload-choice"><input id="photos-input" type="file" accept="image/*" /> <span>▧</span>Photos</label>
-            <label class="upload-choice"><input id="files-input" type="file" accept="image/*,.pdf" /> <span>⌑</span>Files & PDFs</label>
+            <label class="upload-choice"><input id="photos-input" type="file" accept="image/*" multiple /> <span>▧</span>Photos</label>
+            <label class="upload-choice"><input id="files-input" type="file" accept="image/*,.pdf,.txt,.md" multiple /> <span>⌑</span>Files & PDFs</label>
+            <label class="upload-choice"><input id="folder-input" type="file" accept="image/*,.pdf,.txt,.md" multiple webkitdirectory directory /> <span>☰</span>Folder</label>
           </div>
           <label class="field note-field" for="note-text">Paste note text</label>
           <textarea
             id="note-text"
             class="note-text"
             rows="7"
-            placeholder="Paste the instructions here if you have text instead of a photo. PrepPal will turn it into a clear plan."
+            placeholder="Paste the instructions here if you have text instead of a photo. PrepPal will turn it into a clear plan. You can also upload a folder of images or notes."
           ></textarea>
           <button class="primary wide" id="analyze-note" disabled>Analyze note with AI <span>→</span></button>
-          <p class="fine-print">For this demo, use a made-up note. Do not upload real medical records.</p>
+          <p class="fine-print">For this demo, use a made-up note. Do not upload real medical records. Folders, photos, text files, and PDFs are supported in the upload flow.</p>
         </section>
 
         <section class="screen center" data-screen="processing">

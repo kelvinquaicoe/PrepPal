@@ -1,5 +1,5 @@
 # Copy this file to .dev.vars and fill in your local secrets.
 API_KEY=
-DUKEGPT_MODEL=gpt-4o-mini
+DUKEGPT_MODEL=openai/gpt-oss-120b
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=

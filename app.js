@@ -55,7 +55,7 @@
     ]
   };
 
-  let selectedFile = null;
+  let selectedFiles = [];
   let previewUrl = '';
   let activeScreen = 'home';
   let reminderSent = false;
@@ -66,7 +66,16 @@
 
   function updateAnalyzeButtonState() {
     if (!analyzeButton) return;
-    analyzeButton.disabled = !selectedFile && !getNoteText();
+    analyzeButton.disabled = !selectedFiles.length && !getNoteText();
+  }
+
+  function getSelectedFilesSummary(files) {
+    const list = Array.isArray(files) ? files.filter(Boolean) : [];
+    if (!list.length) return 'No note selected yet';
+    if (list.length === 1) return list[0].name;
+
+    const firstName = list[0]?.name || 'first file';
+    return `${list.length} files selected · ${firstName}`;
   }
 
   async function readJsonResponse(response) {
@@ -149,15 +158,17 @@
     }
   }
 
-  function updateSelectedFile(file) {
-    selectedFile = file;
+  function updateSelectedFiles(files) {
+    selectedFiles = Array.isArray(files) ? files.filter(Boolean) : [];
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       previewUrl = '';
     }
 
-    if (!file) {
+    const primaryFile = selectedFiles[0] || null;
+
+    if (!primaryFile) {
       if (selectedFileEl) selectedFileEl.textContent = 'No note selected yet';
       if (notePreviewEl) {
         notePreviewEl.hidden = true;
@@ -169,14 +180,14 @@
       return;
     }
 
-    if (selectedFileEl) selectedFileEl.textContent = file.name;
+    if (selectedFileEl) selectedFileEl.textContent = getSelectedFilesSummary(selectedFiles);
     updateAnalyzeButtonState();
 
-    const isImage = file.type.startsWith('image/');
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = typeof primaryFile.type === 'string' && primaryFile.type.startsWith('image/');
+    const isPdf = primaryFile.type === 'application/pdf' || primaryFile.name.toLowerCase().endsWith('.pdf');
 
     if (isImage) {
-      previewUrl = URL.createObjectURL(file);
+      previewUrl = URL.createObjectURL(primaryFile);
       if (notePreviewEl) {
         notePreviewEl.src = previewUrl;
         notePreviewEl.hidden = false;
@@ -192,12 +203,14 @@
       if (filePlaceholderEl) {
         filePlaceholderEl.hidden = false;
         if (filePlaceholderTitleEl) {
-          filePlaceholderTitleEl.textContent = isPdf ? 'PDF note selected' : 'File selected';
+          filePlaceholderTitleEl.textContent = selectedFiles.length > 1 ? 'FILES SELECTED' : isPdf ? 'PDF note selected' : 'File selected';
         }
         if (filePlaceholderTextEl) {
-          filePlaceholderTextEl.textContent = isPdf
-            ? 'PrepPal accepts PDFs. For best results, use a photo if you want the AI to read handwriting.'
-            : 'PrepPal accepts files, photos, and camera images.';
+          filePlaceholderTextEl.textContent = selectedFiles.length > 1
+            ? 'PrepPal will analyze the folder or file set and use the supported files it can read.'
+            : isPdf
+              ? 'PrepPal accepts PDFs. For best results, use a photo if you want the AI to read handwriting.'
+              : 'PrepPal accepts files, photos, and camera images.';
         }
       }
     }
@@ -214,8 +227,11 @@
     }
 
     const formData = new FormData();
-    if (selectedFile) {
-      formData.append('file', selectedFile);
+    if (selectedFiles.length) {
+      formData.append('file', selectedFiles[0]);
+      selectedFiles.forEach((file) => {
+        formData.append('files', file);
+      });
     }
     if (noteText) {
       formData.append('noteText', noteText);
@@ -311,8 +327,8 @@
   function wireFileInputs() {
     fileInputs.forEach((input) => {
       input.addEventListener('change', (event) => {
-        const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-        updateSelectedFile(file);
+        const files = event.target.files ? Array.from(event.target.files) : [];
+        updateSelectedFiles(files);
       });
     });
   }
@@ -360,6 +376,7 @@
     wireNoteText();
     wireButtons();
     renderPlan(defaultPlan);
+    updateSelectedFiles([]);
     updateAnalyzeButtonState();
     showScreen('home');
   }
