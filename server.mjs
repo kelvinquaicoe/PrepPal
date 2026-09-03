@@ -121,6 +121,39 @@ function fileToDataUrl(file) {
   });
 }
 
+function getPlanSchema() {
+  return {
+    name: 'prep_pal_plan',
+    strict: true,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['procedureType', 'procedureDate', 'processingTitle', 'extractionNote', 'smsPreview', 'timeline'],
+      properties: {
+        procedureType: { type: 'string' },
+        procedureDate: { type: 'string' },
+        processingTitle: { type: 'string' },
+        extractionNote: { type: 'string' },
+        smsPreview: { type: 'string' },
+        timeline: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['step', 'label', 'title', 'body'],
+            properties: {
+              step: { type: 'string' },
+              label: { type: 'string' },
+              title: { type: 'string' },
+              body: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  };
+}
+
 function extractGroqMessageText(payload) {
   const content = payload?.choices?.[0]?.message?.content;
 
@@ -292,20 +325,25 @@ function salvagePlanFromText(text, errorMessage) {
   };
 }
 
-async function callGroqChatCompletion(apiKey, messages, model) {
+async function callGroqChatCompletion(apiKey, messages, model, responseFormat) {
+  const body = {
+    model,
+    messages,
+    temperature: 0.2,
+    max_tokens: 700
+  };
+
+  if (responseFormat) {
+    body.response_format = responseFormat;
+  }
+
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       authorization: `Bearer ${apiKey}`,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.2,
-      max_tokens: 700,
-      response_format: { type: 'json_object' }
-    })
+    body: JSON.stringify(body)
   });
 
   const responseText = await response.text();
@@ -365,19 +403,10 @@ Important:
 }
 
 async function callGroqWithText(apiKey, noteText) {
-  const prompt = `You are helping a patient understand a medical note.
-Return only valid JSON with these keys:
-- procedureType
-- procedureDate
-- processingTitle
-- extractionNote
-- smsPreview
-- timeline (array of objects with step, label, title, body)
-
-Use the pasted note text below as the source of truth.
-If the note is incomplete, infer a safe, generic follow-up plan based on the text.
-Make the tone friendly and simple.
-Do not include markdown or extra commentary.
+  const prompt = `Extract a safe, friendly prep plan from the pasted medical note.
+Use the note text as the source of truth.
+If details are missing, infer a common colonoscopy prep timeline.
+Keep the content simple and general.
 
 Pasted note text:
 """
@@ -389,7 +418,7 @@ ${noteText}
       role: 'user',
       content: [{ type: 'text', text: prompt }]
     }
-  ], 'openai/gpt-oss-120b');
+  ], 'openai/gpt-oss-120b', { type: 'json_schema', json_schema: getPlanSchema() });
 }
 
 function buildFallbackPlan(errorMessage) {
