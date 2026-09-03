@@ -303,7 +303,8 @@ async function callGroqChatCompletion(apiKey, messages, model) {
       model,
       messages,
       temperature: 0.2,
-      max_tokens: 700
+      max_tokens: 700,
+      response_format: { type: 'json_object' }
     })
   });
 
