@@ -205,6 +205,16 @@ function resolveApiKey(env) {
   return env.API_KEY || env['API-Key'] || env.DUKEGPT_API_KEY || env.OPENAI_API_KEY;
 }
 
+function missingApiKeyResponse() {
+  return json(
+    {
+      error:
+        'Missing API key secret. Set API_KEY in the Worker, then redeploy.'
+    },
+    500
+  );
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -220,7 +230,7 @@ export async function onRequestPost(context) {
     if (noteText) {
       const apiKey = resolveApiKey(env);
       if (!apiKey) {
-        return json(buildFallbackPlan('missing API key'));
+        return missingApiKeyResponse();
       }
 
       try {
@@ -248,7 +258,7 @@ export async function onRequestPost(context) {
 
     const apiKey = resolveApiKey(env);
     if (!apiKey) {
-      return json(buildFallbackPlan('missing API key'));
+      return missingApiKeyResponse();
     }
 
     try {

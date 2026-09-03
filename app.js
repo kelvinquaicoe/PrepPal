@@ -222,6 +222,7 @@
     }
 
     let data = null;
+    let errorMessage = '';
     try {
       const response = await fetch('/api/analyze-note', {
         method: 'POST',
@@ -231,18 +232,35 @@
       const payload = await readJsonResponse(response);
       if (response.ok && payload) {
         data = payload;
-      } else if (payload?.extractionNote) {
-        data = payload;
+      } else {
+        errorMessage = payload?.error || 'Unable to analyze the note.';
       }
     } catch (error) {
-      data = null;
+      errorMessage = error instanceof Error && error.message ? error.message : 'Unable to analyze the note.';
     }
 
     if (!data) {
-      data = {
-        ...defaultPlan,
-        extractionNote: 'Could not reach the AI service, so PrepPal showed the demo plan instead.'
-      };
+      if (processingTitleEl) {
+        processingTitleEl.innerHTML = 'AI setup needed';
+      }
+
+      if (document.body) {
+        const existingError = document.getElementById('analyze-error');
+        if (existingError) {
+          existingError.remove();
+        }
+
+        const errorBox = document.createElement('p');
+        errorBox.id = 'analyze-error';
+        errorBox.className = 'fine-print';
+        errorBox.textContent = errorMessage || 'Set the API key secret and redeploy, then try again.';
+        const screen = document.querySelector('.screen[data-screen="processing"]');
+        if (screen) {
+          screen.appendChild(errorBox);
+        }
+      }
+
+      return;
     }
 
     renderPlan(data);
