@@ -8,6 +8,7 @@
   const filePlaceholderEl = document.getElementById('file-placeholder');
   const filePlaceholderTitleEl = document.getElementById('file-placeholder-title');
   const filePlaceholderTextEl = document.getElementById('file-placeholder-text');
+  const noteTextEl = document.getElementById('note-text');
   const analyzeButton = document.getElementById('analyze-note');
   const processingTitleEl = document.getElementById('processing-title');
   const procedureTitleEl = document.getElementById('procedure-title');
@@ -16,7 +17,7 @@
   const extractionNoteEl = document.getElementById('extraction-note');
   const sendDemoButton = document.getElementById('send-demo');
   const sendNoteEl = document.getElementById('send-note');
-  const phoneNumberEl = document.getElementById('phone-number');
+  const emailAddressEl = document.getElementById('email-address');
   const toggles = Array.from(document.querySelectorAll('.toggle'));
 
   const defaultPlan = {
@@ -58,6 +59,26 @@
   let previewUrl = '';
   let activeScreen = 'home';
   let reminderSent = false;
+
+  function getNoteText() {
+    return noteTextEl ? noteTextEl.value.trim() : '';
+  }
+
+  function updateAnalyzeButtonState() {
+    if (!analyzeButton) return;
+    analyzeButton.disabled = !selectedFile && !getNoteText();
+  }
+
+  async function readJsonResponse(response) {
+    const raw = await response.text();
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { error: raw };
+    }
+  }
 
   function showScreen(screenName) {
     activeScreen = screenName;
@@ -118,12 +139,12 @@
     }
 
     if (sendNoteEl) {
-      sendNoteEl.textContent = 'This prototype simulates a text—it does not send one.';
+      sendNoteEl.textContent = 'This prototype simulates an email—it does not send one.';
     }
 
     reminderSent = false;
     if (sendDemoButton) {
-      sendDemoButton.textContent = 'Send demo reminder →';
+      sendDemoButton.textContent = 'Send demo email →';
       sendDemoButton.disabled = false;
     }
   }
@@ -144,12 +165,12 @@
       }
       if (sampleNoteEl) sampleNoteEl.hidden = false;
       if (filePlaceholderEl) filePlaceholderEl.hidden = true;
-      if (analyzeButton) analyzeButton.disabled = true;
+      updateAnalyzeButtonState();
       return;
     }
 
     if (selectedFileEl) selectedFileEl.textContent = file.name;
-    if (analyzeButton) analyzeButton.disabled = false;
+    updateAnalyzeButtonState();
 
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
@@ -183,7 +204,8 @@
   }
 
   async function analyzeNote() {
-    if (!selectedFile) return;
+    const noteText = getNoteText();
+    if (!selectedFile && !noteText) return;
 
     showScreen('processing');
 
@@ -192,7 +214,12 @@
     }
 
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    if (selectedFile) {
+      formData.append('file', selectedFile);
+    }
+    if (noteText) {
+      formData.append('noteText', noteText);
+    }
 
     let data = null;
     try {
@@ -201,8 +228,11 @@
         body: formData
       });
 
-      if (response.ok) {
-        data = await response.json();
+      const payload = await readJsonResponse(response);
+      if (response.ok && payload) {
+        data = payload;
+      } else if (payload?.extractionNote) {
+        data = payload;
       }
     } catch (error) {
       data = null;
@@ -222,7 +252,7 @@
   async function sendDemoReminder() {
     if (!sendDemoButton || !sendNoteEl) return;
 
-    const destination = phoneNumberEl?.value?.trim() || '(336) 740-1136';
+    const destination = emailAddressEl?.value?.trim() || 'kelvin@example.com';
     const text = document.querySelector('.bubble')?.textContent || defaultPlan.smsPreview;
 
     sendDemoButton.disabled = true;
@@ -232,7 +262,7 @@
       const response = await fetch('/api/send-reminder', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: destination, message: text })
+        body: JSON.stringify({ email: destination, message: text })
       });
 
       const raw = await response.text();
@@ -249,12 +279,12 @@
       }
 
       reminderSent = true;
-      sendDemoButton.textContent = data.mode === 'live' ? 'Sent to phone ✓' : 'Sent in demo mode ✓';
-      sendNoteEl.textContent = data.message || `Reminder sent to ${data.phone}.`;
+      sendDemoButton.textContent = data.mode === 'live' ? 'Sent to email ✓' : 'Sent in demo mode ✓';
+      sendNoteEl.textContent = data.message || `Reminder sent to ${data.email}.`;
     } catch (error) {
       sendNoteEl.textContent = error instanceof Error && error.message
         ? error.message
-        : 'Could not send the SMS yet. Check your Twilio settings and try again.';
+        : 'Could not send the email yet. Check your email settings and try again.';
     } finally {
       sendDemoButton.disabled = false;
     }
@@ -266,6 +296,14 @@
         const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
         updateSelectedFile(file);
       });
+    });
+  }
+
+  function wireNoteText() {
+    if (!noteTextEl) return;
+
+    noteTextEl.addEventListener('input', () => {
+      updateAnalyzeButtonState();
     });
   }
 
@@ -293,7 +331,7 @@
       toggle.addEventListener('click', () => {
         toggle.classList.toggle('on');
         const enabled = toggle.classList.contains('on');
-        toggle.setAttribute('aria-label', enabled ? 'Text reminders enabled' : 'Text reminders disabled');
+        toggle.setAttribute('aria-label', enabled ? 'Email reminders enabled' : 'Email reminders disabled');
       });
     });
   }
@@ -301,8 +339,10 @@
   function init() {
     wireNavigation();
     wireFileInputs();
+    wireNoteText();
     wireButtons();
     renderPlan(defaultPlan);
+    updateAnalyzeButtonState();
     showScreen('home');
   }
 

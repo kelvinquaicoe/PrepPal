@@ -1,6 +1,5 @@
 # Copy this file to .dev.vars and fill in your local secrets.
-DUKEGPT_API_KEY=
+API-Key=
 DUKEGPT_MODEL=gpt-4o-mini
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_FROM_NUMBER=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=

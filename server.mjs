@@ -76,6 +76,10 @@ async function loadEnv() {
   return parseEnvFile(text);
 }
 
+function resolveApiKey(env) {
+  return env['API-Key'] || env.DUKEGPT_API_KEY || env.OPENAI_API_KEY;
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -98,6 +102,33 @@ function fileToDataUrl(file) {
 
     return `data:${file.type || 'image/jpeg'};base64,${btoa(binary)}`;
   });
+}
+
+function extractResponseText(payload) {
+  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
+    return payload.output_text.trim();
+  }
+
+  const parts = [];
+  for (const item of payload?.output || []) {
+    for (const content of item?.content || []) {
+      if (typeof content?.text === 'string') {
+        parts.push(content.text);
+      }
+    }
+  }
+
+  return parts.join('\n').trim();
+}
+
+function parseJsonResponse(text) {
+  const trimmed = String(text || '').trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const candidate = (fenced ? fenced[1] : trimmed).trim();
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  const jsonText = start !== -1 && end !== -1 && end > start ? candidate.slice(start, end + 1) : candidate;
+  return JSON.parse(jsonText);
 }
 
 async function callOpenAI(apiKey, file, model) {
@@ -144,68 +175,112 @@ Important:
   }
 
   const payload = await response.json();
-  const text = payload.output_text || '';
+  const text = extractResponseText(payload);
 
   if (!text) {
-    throw new Error('OpenAI response did not contain output text');
+    throw new Error('OpenAI response did not contain usable output text');
   }
 
-  return JSON.parse(text);
+  return parseJsonResponse(text);
 }
 
-function normalizePhone(phone) {
-  const raw = String(phone || '').trim();
-  const digits = raw.replace(/\D/g, '');
+async function callOpenAIWithText(apiKey, noteText, model) {
+  const prompt = `You are helping a patient understand a medical note.
+Return only valid JSON with these keys:
+- procedureType
+- procedureDate
+- processingTitle
+- extractionNote
+- smsPreview
+- timeline (array of objects with step, label, title, body)
 
-  if (raw.startsWith('+')) {
-    return `+${digits}`;
+Use the pasted note text below as the source of truth.
+If the note is incomplete, infer a safe, generic follow-up plan based on the text.
+Make the tone friendly and simple.
+Do not include markdown or extra commentary.
+
+Pasted note text:
+"""
+${noteText}
+"""`;
+
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: model || 'gpt-4o-mini',
+      input: [
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: prompt }]
+        }
+      ],
+      temperature: 0.2,
+      max_output_tokens: 700
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI request failed with status ${response.status}`);
   }
 
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `+${digits}`;
+  const payload = await response.json();
+  const text = extractResponseText(payload);
+
+  if (!text) {
+    throw new Error('OpenAI response did not contain usable output text');
   }
 
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-
-  return raw;
+  return parseJsonResponse(text);
 }
 
-async function sendViaTwilio(env, phone, message) {
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-  const fromNumber = env.TWILIO_FROM_NUMBER || env.TWILIO_PHONE_NUMBER;
-  const messagingServiceSid = env.TWILIO_MESSAGING_SERVICE_SID;
+function buildFallbackPlan(errorMessage) {
+  if (!errorMessage) {
+    return fallbackPlan;
+  }
 
-  if (!accountSid || !authToken || (!fromNumber && !messagingServiceSid)) {
+  return {
+    ...fallbackPlan,
+    extractionNote: `PrepPal used the built-in demo plan because the AI service was unavailable: ${errorMessage}`
+  };
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function sendViaEmail(env, email, message) {
+  const apiKey = env.RESEND_API_KEY;
+  const fromEmail = env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !fromEmail) {
     return {
       ok: true,
       mode: 'demo',
-      phone,
-      message: `Demo reminder prepared for ${phone}. Add Twilio secrets to send real texts.`
+      email,
+      message: `Demo reminder prepared for ${email}. Add email service secrets to send real emails.`
     };
   }
 
-  const body = new URLSearchParams({
-    To: phone,
-    Body: message
-  });
-
-  if (messagingServiceSid) {
-    body.set('MessagingServiceSid', messagingServiceSid);
-  } else {
-    body.set('From', fromNumber);
-  }
-
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-      'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      accept: 'application/json'
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json'
     },
-    body
+    body: JSON.stringify({
+      from: fromEmail,
+      to: [email],
+      subject: 'PrepPal reminder',
+      text: message
+    })
   });
 
   const responseText = await response.text();
@@ -218,17 +293,16 @@ async function sendViaTwilio(env, phone, message) {
   }
 
   if (!response.ok) {
-    const errorMessage = payload?.message || responseText || `Twilio request failed with status ${response.status}`;
-    const errorCode = payload?.code ? ` (code ${payload.code})` : '';
-    throw new Error(`Twilio error${errorCode}: ${errorMessage}`);
+    const errorMessage = payload?.message || responseText || `Email service request failed with status ${response.status}`;
+    throw new Error(`Email error: ${errorMessage}`);
   }
 
   return {
     ok: true,
     mode: 'live',
-    phone,
-    message: `Text message sent to ${phone}.`,
-    sid: payload.sid
+    email,
+    message: `Email sent to ${email}.`,
+    id: payload?.id
   };
 }
 
@@ -236,6 +310,28 @@ async function handleAnalyzeNote(request, env) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
+    const noteText = String(formData.get('noteText') || '').trim();
+
+    if (!file && !noteText) {
+      return json({ error: 'Please upload a file or paste note text.' }, 400);
+    }
+
+    if (noteText) {
+      const apiKey = resolveApiKey(env);
+      if (!apiKey) {
+        return json(buildFallbackPlan('missing API key'));
+      }
+
+      try {
+        const model = env.DUKEGPT_MODEL || env.OPENAI_MODEL || 'gpt-4o-mini';
+        const plan = await callOpenAIWithText(apiKey, noteText, model);
+        return json({ ...fallbackPlan, ...plan });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'request failed or returned invalid JSON';
+        console.error('analyze-note text path failed:', error);
+        return json(buildFallbackPlan(message));
+      }
+    }
 
     if (!file || typeof file === 'string') {
       return json({ error: 'Please upload a file.' }, 400);
@@ -249,20 +345,19 @@ async function handleAnalyzeNote(request, env) {
       });
     }
 
-    const apiKey = env.DUKEGPT_API_KEY || env.OPENAI_API_KEY;
+    const apiKey = resolveApiKey(env);
     if (!apiKey) {
-      return json(fallbackPlan);
+      return json(buildFallbackPlan('missing API key'));
     }
 
     try {
       const model = env.DUKEGPT_MODEL || env.OPENAI_MODEL || 'gpt-4o-mini';
       const plan = await callOpenAI(apiKey, file, model);
       return json({ ...fallbackPlan, ...plan });
-    } catch {
-      return json({
-        ...fallbackPlan,
-        extractionNote: 'PrepPal used the built-in demo plan because the AI service was unavailable.'
-      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'request failed or returned invalid JSON';
+      console.error('analyze-note image path failed:', error);
+      return json(buildFallbackPlan(message));
     }
   } catch {
     return json({ error: 'Unable to analyze the note.' }, 500);
@@ -272,18 +367,22 @@ async function handleAnalyzeNote(request, env) {
 async function handleSendReminder(request, env) {
   try {
     const data = await request.json();
-    const phone = normalizePhone(data?.phone);
+    const email = normalizeEmail(data?.email);
     const message = String(data?.message || '').trim();
 
-    if (!phone) {
-      return json({ ok: false, error: 'Phone number is required.' }, 400);
+    if (!email) {
+      return json({ ok: false, error: 'Email address is required.' }, 400);
+    }
+
+    if (!isValidEmail(email)) {
+      return json({ ok: false, error: 'Please enter a valid email address.' }, 400);
     }
 
     if (!message) {
       return json({ ok: false, error: 'Message is required.' }, 400);
     }
 
-    const result = await sendViaTwilio(env, phone, message);
+    const result = await sendViaEmail(env, email, message);
     return json(result);
   } catch (error) {
     return json({

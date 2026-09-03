@@ -64,6 +64,13 @@
             <label class="upload-choice"><input id="photos-input" type="file" accept="image/*" /> <span>▧</span>Photos</label>
             <label class="upload-choice"><input id="files-input" type="file" accept="image/*,.pdf" /> <span>⌑</span>Files & PDFs</label>
           </div>
+          <label class="field note-field" for="note-text">Paste note text</label>
+          <textarea
+            id="note-text"
+            class="note-text"
+            rows="7"
+            placeholder="Paste the instructions here if you have text instead of a photo. PrepPal will turn it into a clear plan."
+          ></textarea>
           <button class="primary wide" id="analyze-note" disabled>Analyze note with AI <span>→</span></button>
           <p class="fine-print">For this demo, use a made-up note. Do not upload real medical records.</p>
         </section>
@@ -97,26 +104,26 @@
           <p class="eyebrow">REMINDER SETUP</p>
           <h1>We’ll keep you<br />on track.</h1>
           <p class="lede">Choose how you want PrepPal to remind you.</p>
-          <label class="field">Mobile number <input id="phone-number" type="tel" value="+13367401136" /></label>
-          <div class="toggle-row"><div><strong>Text message reminders</strong><p>Receive clear prep steps when they matter.</p></div><button class="toggle on" aria-label="Text reminders enabled"></button></div>
+          <label class="field">Email address <input id="email-address" type="email" value="kelvin@example.com" /></label>
+          <div class="toggle-row"><div><strong>Email reminders</strong><p>Receive clear prep steps when they matter.</p></div><button class="toggle on" aria-label="Email reminders enabled"></button></div>
           <div class="reminder-list">
             <label><input type="checkbox" checked /> 7 days before: medication check</label>
             <label><input type="checkbox" checked /> Day before: clear-liquid reminder</label>
             <label><input type="checkbox" checked /> Evening before: prep reminder</label>
           </div>
-          <button class="primary wide" data-go="message">Preview my first text <span>→</span></button>
+          <button class="primary wide" data-go="message">Preview my first email <span>→</span></button>
         </section>
 
         <section class="screen message-screen" data-screen="message">
           <button class="back" data-go="reminders">← Reminders</button>
-          <p class="eyebrow">TEXT MESSAGE PREVIEW</p>
+          <p class="eyebrow">EMAIL PREVIEW</p>
           <h1>Your reminder<br />is ready.</h1>
           <div class="sms-phone">
-            <div class="sms-header"><span>‹</span><div class="sms-logo">✦</div><div><strong>PrepPal</strong><small>Text Message</small></div></div>
+            <div class="sms-header"><span>‹</span><div class="sms-logo">✦</div><div><strong>PrepPal</strong><small>Email</small></div></div>
             <div class="sms-body"><span class="sms-time">Today 9:00 AM</span><div class="bubble">Hi Kelvin! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.</div><span class="delivered">Delivered</span></div>
           </div>
-          <button class="primary wide" id="send-demo">Send demo reminder <span>→</span></button>
-          <p class="fine-print" id="send-note">This prototype simulates a text—it does not send one.</p>
+          <button class="primary wide" id="send-demo">Send demo email <span>→</span></button>
+          <p class="fine-print" id="send-note">This prototype simulates an email—it does not send one.</p>
         </section>
 
         <nav class="nav"><button data-go="home" class="selected">⌂<span>Home</span></button><button data-go="plan">☷<span>Plan</span></button><button data-go="reminders">✉<span>Reminders</span></button></nav>

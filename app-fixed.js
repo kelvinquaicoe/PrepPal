@@ -16,7 +16,7 @@
   const extractionNoteEl = document.getElementById('extraction-note');
   const sendDemoButton = document.getElementById('send-demo');
   const sendNoteEl = document.getElementById('send-note');
-  const phoneNumberEl = document.getElementById('phone-number');
+  const emailAddressEl = document.getElementById('email-address');
   const toggles = Array.from(document.querySelectorAll('.toggle'));
 
   const defaultPlan = {
@@ -127,12 +127,12 @@
     const bubble = document.querySelector('.bubble');
     if (bubble) bubble.textContent = finalPlan.smsPreview;
 
-    if (sendNoteEl) sendNoteEl.textContent = 'This prototype simulates a text—it does not send one.';
+    if (sendNoteEl) sendNoteEl.textContent = 'This prototype simulates an email—it does not send one.';
 
     reminderSent = false;
     if (sendDemoButton) {
       sendDemoButton.disabled = false;
-      sendDemoButton.textContent = 'Send demo reminder →';
+      sendDemoButton.textContent = 'Send demo email →';
     }
   }
 
@@ -173,6 +173,17 @@
     }
   }
 
+  async function readJsonResponse(response) {
+    const raw = await response.text();
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { error: raw };
+    }
+  }
+
   async function analyzeNote() {
     if (!selectedFile) return;
 
@@ -187,9 +198,11 @@
         method: 'POST',
         body: formData
       });
-
-      if (response.ok) {
-        plan = await response.json();
+      const payload = await readJsonResponse(response);
+      if (response.ok && payload) {
+        plan = payload;
+      } else if (payload?.extractionNote) {
+        plan = payload;
       }
     } catch (error) {
       plan = null;
@@ -209,7 +222,7 @@
   async function sendDemoReminder() {
     if (!sendDemoButton || !sendNoteEl) return;
 
-    const destination = phoneNumberEl?.value?.trim() || '(336) 740-1136';
+    const destination = emailAddressEl?.value?.trim() || 'kelvin@example.com';
     const text = document.querySelector('.bubble')?.textContent || defaultPlan.smsPreview;
 
     sendDemoButton.disabled = true;
@@ -219,7 +232,7 @@
       const response = await fetch('/api/send-reminder', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: destination, message: text })
+        body: JSON.stringify({ email: destination, message: text })
       });
 
       const data = await response.json();
@@ -228,10 +241,10 @@
       }
 
       reminderSent = true;
-      sendDemoButton.textContent = data.mode === 'live' ? 'Sent to phone ✓' : 'Sent in demo mode ✓';
-      sendNoteEl.textContent = data.message || `Reminder sent to ${data.phone}.`;
+      sendDemoButton.textContent = data.mode === 'live' ? 'Sent to email ✓' : 'Sent in demo mode ✓';
+      sendNoteEl.textContent = data.message || `Reminder sent to ${data.email}.`;
     } catch (error) {
-      sendNoteEl.textContent = 'Could not send the SMS yet. Add Twilio keys in Cloudflare and try again.';
+      sendNoteEl.textContent = 'Could not send the email yet. Add email settings in Cloudflare and try again.';
     } finally {
       sendDemoButton.disabled = false;
     }
@@ -265,7 +278,7 @@
         toggle.classList.toggle('on');
         toggle.setAttribute(
           'aria-label',
-          toggle.classList.contains('on') ? 'Text reminders enabled' : 'Text reminders disabled'
+          toggle.classList.contains('on') ? 'Email reminders enabled' : 'Email reminders disabled'
         );
       });
     });

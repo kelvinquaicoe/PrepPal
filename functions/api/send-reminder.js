@@ -8,59 +8,39 @@ function json(data, status = 200) {
   });
 }
 
-function normalizePhone(phone) {
-  const raw = String(phone || '').trim();
-  const digits = raw.replace(/\D/g, '');
-
-  if (raw.startsWith('+')) {
-    return `+${digits}`;
-  }
-
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `+${digits}`;
-  }
-
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-
-  return raw;
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
 }
 
-async function sendViaTwilio(env, phone, message) {
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-  const fromNumber = env.TWILIO_FROM_NUMBER || env.TWILIO_PHONE_NUMBER;
-  const messagingServiceSid = env.TWILIO_MESSAGING_SERVICE_SID;
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-  if (!accountSid || !authToken || (!fromNumber && !messagingServiceSid)) {
+async function sendViaEmail(env, email, message) {
+  const apiKey = env.RESEND_API_KEY;
+  const fromEmail = env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !fromEmail) {
     return {
       ok: true,
       mode: 'demo',
-      phone,
-      message: `Demo reminder prepared for ${phone}. Add Twilio secrets to send real texts.`
+      email,
+      message: `Demo reminder prepared for ${email}. Add email service secrets to send real emails.`
     };
   }
 
-  const body = new URLSearchParams({
-    To: phone,
-    Body: message
-  });
-
-  if (messagingServiceSid) {
-    body.set('MessagingServiceSid', messagingServiceSid);
-  } else {
-    body.set('From', fromNumber);
-  }
-
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-      'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      accept: 'application/json'
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json'
     },
-    body
+    body: JSON.stringify({
+      from: fromEmail,
+      to: [email],
+      subject: 'PrepPal reminder',
+      text: message
+    })
   });
 
   const responseText = await response.text();
@@ -73,17 +53,16 @@ async function sendViaTwilio(env, phone, message) {
   }
 
   if (!response.ok) {
-    const errorMessage = payload?.message || responseText || `Twilio request failed with status ${response.status}`;
-    const errorCode = payload?.code ? ` (code ${payload.code})` : '';
-    throw new Error(`Twilio error${errorCode}: ${errorMessage}`);
+    const errorMessage = payload?.message || responseText || `Email service request failed with status ${response.status}`;
+    throw new Error(`Email error: ${errorMessage}`);
   }
 
   return {
     ok: true,
     mode: 'live',
-    phone,
-    message: `Text message sent to ${phone}.`,
-    sid: payload.sid
+    email,
+    message: `Email sent to ${email}.`,
+    id: payload?.id
   };
 }
 
@@ -91,18 +70,22 @@ export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const data = await request.json();
-    const phone = normalizePhone(data?.phone);
+    const email = normalizeEmail(data?.email);
     const message = String(data?.message || '').trim();
 
-    if (!phone) {
-      return json({ ok: false, error: 'Phone number is required.' }, 400);
+    if (!email) {
+      return json({ ok: false, error: 'Email address is required.' }, 400);
+    }
+
+    if (!isValidEmail(email)) {
+      return json({ ok: false, error: 'Please enter a valid email address.' }, 400);
     }
 
     if (!message) {
       return json({ ok: false, error: 'Message is required.' }, 400);
     }
 
-    const result = await sendViaTwilio(env, phone, message);
+    const result = await sendViaEmail(env, email, message);
     return json(result);
   } catch (error) {
     return json({
