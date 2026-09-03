@@ -7,7 +7,7 @@ A mobile-first career-fair demo showing how a photo of a handwritten medical-pro
 The image-to-plan feature uses a Cloudflare Pages Function, so your API key is never exposed in the browser.
 
 1. Create your API key.
-2. In your Cloudflare Pages project, add an encrypted secret named `API-Key` or `DUKEGPT_API_KEY`.
+2. In your Cloudflare Worker, add a secret named `API_KEY` or `DUKEGPT_API_KEY`.
 3. Deploy this folder as a Cloudflare Worker. The `worker.js` entry point serves the static app and routes `/api/analyze-note` and `/api/send-reminder`.
 4. If you want real email sending, add an email provider secret too: `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 
@@ -23,7 +23,7 @@ For local development, copy `.dev.vars.example` to `.dev.vars`, put your key the
 npx wrangler dev
 ```
 
-Never commit `.dev.vars` or paste the key in `app.js`. Use `API-Key=` in `.dev.vars` if you want to match the Cloudflare secret name exactly.
+Never commit `.dev.vars` or paste the key in `app.js`. Use `API_KEY=` in `.dev.vars` if you want to match the Cloudflare secret name exactly.
 
 The reminder button calls `functions/api/send-reminder.js`, which uses an email API when those secrets are available and falls back to a demo response otherwise.
 

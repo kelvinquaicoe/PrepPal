@@ -202,7 +202,7 @@ function buildFallbackPlan(errorMessage) {
 }
 
 function resolveApiKey(env) {
-  return env['API-Key'] || env.DUKEGPT_API_KEY || env.OPENAI_API_KEY;
+  return env.API_KEY || env['API-Key'] || env.DUKEGPT_API_KEY || env.OPENAI_API_KEY;
 }
 
 export async function onRequestPost(context) {
