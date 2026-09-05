@@ -4,7 +4,7 @@ const fallbackPlan = {
   processingTitle: 'Making your\ninstructions clear…',
   extractionNote: 'PrepPal extracted the key steps, but you should always confirm them with your clinic.',
   smsPreview:
-    'Hi Kelvin! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.',
+    'Hi there! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.',
   timeline: [
     {
       step: '1',

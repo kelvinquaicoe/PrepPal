@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">PrepPal logo</title>
+  <desc id="desc">A teal circular logo with a coral spark and white medical cross</desc>
+  <circle cx="32" cy="32" r="30" fill="#0F4039"/>
+  <circle cx="32" cy="32" r="20" fill="#123B35" stroke="#CCEBE1" stroke-width="2"/>
+  <path d="M32 18V46" stroke="#F7F4EA" stroke-width="6" stroke-linecap="round"/>
+  <path d="M18 32H46" stroke="#F7F4EA" stroke-width="6" stroke-linecap="round"/>
+  <path d="M44 15l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L44 15z" fill="#FF725C"/>
+</svg>

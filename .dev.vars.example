@@ -2,4 +2,4 @@
 API_KEY=
 DUKEGPT_MODEL=openai/gpt-oss-120b
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+RESEND_FROM_EMAIL=onboarding@resend.dev

@@ -1,0 +1,14 @@
+{
+  "title": "PrepPal",
+  "description": "Create professional app logos effortlessly with customizable templates and design tools tailored for developers and startups seeking unique branding.",
+  "icons": {
+    "icon": "/preppal-logo.svg"
+  },
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

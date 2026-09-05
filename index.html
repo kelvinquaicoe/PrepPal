@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#103c36" />
     <title>PrepPal — Procedure prep, made clear</title>
+    <link rel="icon" href="assets/preppal-logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="upload.css" />
   </head>
@@ -12,12 +13,25 @@
     <main class="app-shell">
       <section class="phone" aria-label="PrepPal mobile app prototype">
         <header class="topbar">
-          <div class="brand"><span class="brand-mark">✦</span> PrepPal</div>
-          <button class="avatar" aria-label="Profile">K</button>
+          <div class="brand">
+            <img class="app-logo" src="assets/preppal-logo.svg" alt="PrepPal logo" />
+            <span>PrepPal</span>
+          </div>
+          <button class="avatar" id="profile-button" aria-label="Profile">?</button>
         </header>
 
-        <section class="screen active" data-screen="home">
-          <p class="eyebrow">GOOD MORNING, KELVIN</p>
+        <section class="screen active login-screen" data-screen="login">
+          <p class="eyebrow">WELCOME</p>
+          <h1>Tell us who’s using PrepPal.</h1>
+          <p class="lede">Enter your name and email so we can personalize the app and send reminders.</p>
+          <label class="field" for="login-name">Your name<input id="login-name" type="text" autocomplete="name" placeholder="Your name" /></label>
+          <label class="field" for="login-email">Email address<input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <button class="primary wide" id="login-submit">Continue to my home <span>→</span></button>
+          <p class="fine-print">We use your email for reminder previews and reminder messages.</p>
+        </section>
+
+        <section class="screen" data-screen="home">
+          <p class="eyebrow" id="home-greeting">GOOD MORNING</p>
           <h1>Let’s make prep<br />feel simple.</h1>
           <p class="lede">Clear next steps from your doctor’s instructions.</p>
 
@@ -51,7 +65,7 @@
             </div>
             <div class="paper" id="sample-note">
               <span class="paper-title">Duke Digestive Health</span>
-              <span>Patient: Kelvin Q.</span>
+              <span id="sample-patient">Patient: Your name</span>
               <span>Colonoscopy — Sept 16, 8:00 AM</span>
               <span class="scribble">clear liquids day before</span>
               <span class="scribble">no food after midnight</span>
@@ -105,7 +119,7 @@
           <p class="eyebrow">REMINDER SETUP</p>
           <h1>We’ll keep you<br />on track.</h1>
           <p class="lede">Choose how you want PrepPal to remind you.</p>
-          <label class="field">Email address <input id="email-address" type="email" value="kelvin@example.com" /></label>
+          <label class="field">Email address <input id="email-address" type="email" value="you@example.com" /></label>
           <div class="toggle-row"><div><strong>Email reminders</strong><p>Receive clear prep steps when they matter.</p></div><button class="toggle on" aria-label="Email reminders enabled"></button></div>
           <div class="reminder-list">
             <label><input type="checkbox" checked /> 7 days before: medication check</label>
@@ -121,7 +135,7 @@
           <h1>Your reminder<br />is ready.</h1>
           <div class="sms-phone">
             <div class="sms-header"><span>‹</span><div class="sms-logo">✦</div><div><strong>PrepPal</strong><small>Email</small></div></div>
-            <div class="sms-body"><span class="sms-time">Today 9:00 AM</span><div class="bubble">Hi Kelvin! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.</div><span class="delivered">Delivered</span></div>
+            <div class="sms-body"><span class="sms-time">Today 9:00 AM</span><div class="bubble" id="sms-preview">Hi there! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.</div><span class="delivered">Delivered</span></div>
           </div>
           <button class="primary wide" id="send-demo">Send demo email <span>→</span></button>
           <p class="fine-print" id="send-note">This prototype simulates an email—it does not send one.</p>
@@ -137,6 +151,6 @@
         <p class="small-note">Prototype data only. Not medical advice.</p>
       </aside>
     </main>
-    <script src="app.js"></script>
+    <script src="app-fixed.js"></script>
   </body>
 </html>

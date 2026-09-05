@@ -1,6 +1,7 @@
 (() => {
   const screens = Array.from(document.querySelectorAll('.screen'));
   const navButtons = Array.from(document.querySelectorAll('[data-go]'));
+  const navEl = document.querySelector('.nav');
   const fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
   const selectedFileEl = document.getElementById('selected-file');
   const notePreviewEl = document.getElementById('note-preview');
@@ -17,6 +18,13 @@
   const sendDemoButton = document.getElementById('send-demo');
   const sendNoteEl = document.getElementById('send-note');
   const emailAddressEl = document.getElementById('email-address');
+  const profileButton = document.getElementById('profile-button');
+  const loginNameEl = document.getElementById('login-name');
+  const loginEmailEl = document.getElementById('login-email');
+  const loginSubmitButton = document.getElementById('login-submit');
+  const homeGreetingEl = document.getElementById('home-greeting');
+  const samplePatientEl = document.getElementById('sample-patient');
+  const smsPreviewEl = document.getElementById('sms-preview');
   const toggles = Array.from(document.querySelectorAll('.toggle'));
 
   const defaultPlan = {
@@ -25,7 +33,7 @@
     processingTitle: 'Making your\ninstructions clear…',
     extractionNote: 'Check the original note and confirm every instruction with your clinic.',
     smsPreview:
-      'Hi Kelvin! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.',
+      'Hi there! Your colonoscopy is in 7 days. Today is a good day to review your medications with your care team. Reply HELP for support.',
     timeline: [
       {
         step: '1',
@@ -54,6 +62,144 @@
     ]
   };
 
+  const STORAGE_KEY = 'preppal.profile';
+
+  function normalizeProfile(profile) {
+    return {
+      name: String(profile?.name || '').trim(),
+      email: String(profile?.email || '').trim()
+    };
+  }
+
+  function loadProfile() {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const profile = normalizeProfile(JSON.parse(raw));
+      return profile.name && profile.email ? profile : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveProfile(profile) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  }
+
+  function getFirstName(name) {
+    const cleaned = String(name || '').trim();
+    if (!cleaned) return 'there';
+    return cleaned.split(/\s+/)[0];
+  }
+
+  function personalizeText(text, profile) {
+    const safeProfile = normalizeProfile(profile || currentProfile);
+    const displayName = safeProfile.name || 'Your name';
+    const firstName = getFirstName(safeProfile.name);
+    const email = safeProfile.email || 'you@example.com';
+
+    return String(text || '')
+      .replace(/Kelvin Q\.?/gi, displayName)
+      .replace(/Kelvin/gi, displayName)
+      .replace(/kelvin@example\.com/gi, email)
+      .replace(/Hi there!/gi, `Hi ${firstName}!`);
+  }
+
+  function personalizeSmsPreview(text, profile) {
+    const safeProfile = normalizeProfile(profile || currentProfile);
+    const firstName = getFirstName(safeProfile.name);
+
+    return personalizeText(text, safeProfile).replace(/^Hi\s+[^!]+!/i, `Hi ${firstName}!`);
+  }
+
+  let currentProfile = loadProfile() || { name: '', email: '' };
+  let currentPlan = defaultPlan;
+
+  function applyProfile(profile, { persist = false } = {}) {
+    currentProfile = normalizeProfile(profile || {});
+
+    if (persist) {
+      saveProfile(currentProfile);
+    }
+
+    if (homeGreetingEl) {
+      homeGreetingEl.textContent = currentProfile.name
+        ? `GOOD MORNING, ${currentProfile.name.toUpperCase()}`
+        : 'GOOD MORNING';
+    }
+
+    if (profileButton) {
+      profileButton.textContent = currentProfile.name ? getFirstName(currentProfile.name).charAt(0).toUpperCase() : '?';
+    }
+
+    if (loginNameEl) {
+      loginNameEl.value = currentProfile.name;
+    }
+
+    if (loginEmailEl) {
+      loginEmailEl.value = currentProfile.email;
+    }
+
+    if (emailAddressEl) {
+      emailAddressEl.value = currentProfile.email;
+    }
+
+    if (samplePatientEl) {
+      samplePatientEl.textContent = currentProfile.name ? `Patient: ${currentProfile.name}` : 'Patient: Your name';
+    }
+
+    if (smsPreviewEl) {
+      smsPreviewEl.textContent = personalizeSmsPreview(defaultPlan.smsPreview, currentProfile);
+    }
+
+    if (currentPlan) {
+      renderPlan(currentPlan);
+    }
+  }
+
+  function openLogin() {
+    applyProfile(currentProfile);
+    showScreen('login');
+    if (loginNameEl) {
+      setTimeout(() => loginNameEl.focus(), 0);
+    }
+  }
+
+  function submitProfile() {
+    const name = String(loginNameEl?.value || '').trim();
+    const email = String(loginEmailEl?.value || '').trim();
+
+    if (loginNameEl) {
+      loginNameEl.setCustomValidity(name ? '' : 'Please enter your name.');
+      if (!name) {
+        loginNameEl.reportValidity();
+        return;
+      }
+    }
+
+    if (loginEmailEl) {
+      loginEmailEl.setCustomValidity('');
+      if (!email) {
+        loginEmailEl.setCustomValidity('Please enter your email address.');
+        loginEmailEl.reportValidity();
+        loginEmailEl.setCustomValidity('');
+        return;
+      }
+
+      if (!loginEmailEl.checkValidity()) {
+        loginEmailEl.reportValidity();
+        return;
+      }
+    }
+
+    applyProfile({ name, email }, { persist: true });
+    showScreen('home');
+  }
+
   let selectedFile = null;
   let previewUrl = '';
   let reminderSent = false;
@@ -62,6 +208,10 @@
     screens.forEach((screen) => {
       screen.classList.toggle('active', screen.dataset.screen === screenName);
     });
+
+    if (navEl) {
+      navEl.hidden = screenName === 'login';
+    }
 
     navButtons.forEach((button) => {
       if (!button.closest('.nav')) return;
@@ -116,16 +266,22 @@
 
   function renderPlan(plan) {
     const finalPlan = { ...defaultPlan, ...plan };
+    currentPlan = finalPlan;
+    const personalizedPlan = {
+      ...finalPlan,
+      processingTitle: personalizeText(finalPlan.processingTitle, currentProfile),
+      extractionNote: personalizeText(finalPlan.extractionNote, currentProfile),
+      smsPreview: personalizeSmsPreview(finalPlan.smsPreview, currentProfile)
+    };
 
-    if (processingTitleEl) processingTitleEl.innerHTML = finalPlan.processingTitle;
-    if (procedureTitleEl) procedureTitleEl.innerHTML = `${finalPlan.procedureType}<br />prep plan`;
-    if (procedureDateEl) procedureDateEl.textContent = finalPlan.procedureDate;
-    if (extractionNoteEl) extractionNoteEl.textContent = finalPlan.extractionNote;
+    if (processingTitleEl) processingTitleEl.innerHTML = personalizedPlan.processingTitle;
+    if (procedureTitleEl) procedureTitleEl.innerHTML = `${personalizedPlan.procedureType}<br />prep plan`;
+    if (procedureDateEl) procedureDateEl.textContent = personalizedPlan.procedureDate;
+    if (extractionNoteEl) extractionNoteEl.textContent = personalizedPlan.extractionNote;
 
-    setTimeline(finalPlan.timeline);
+    setTimeline(personalizedPlan.timeline);
 
-    const bubble = document.querySelector('.bubble');
-    if (bubble) bubble.textContent = finalPlan.smsPreview;
+    if (smsPreviewEl) smsPreviewEl.textContent = personalizedPlan.smsPreview;
 
     if (sendNoteEl) sendNoteEl.textContent = 'This prototype simulates an email—it does not send one.';
 
@@ -222,8 +378,8 @@
   async function sendDemoReminder() {
     if (!sendDemoButton || !sendNoteEl) return;
 
-    const destination = emailAddressEl?.value?.trim() || 'kelvin@example.com';
-    const text = document.querySelector('.bubble')?.textContent || defaultPlan.smsPreview;
+    const destination = emailAddressEl?.value?.trim() || currentProfile.email || 'you@example.com';
+    const text = smsPreviewEl?.textContent || defaultPlan.smsPreview;
 
     sendDemoButton.disabled = true;
     sendNoteEl.textContent = 'Sending reminder…';
@@ -272,6 +428,18 @@
   function wireButtons() {
     if (analyzeButton) analyzeButton.addEventListener('click', analyzeNote);
     if (sendDemoButton) sendDemoButton.addEventListener('click', sendDemoReminder);
+    if (profileButton) profileButton.addEventListener('click', openLogin);
+    if (loginSubmitButton) loginSubmitButton.addEventListener('click', submitProfile);
+
+    [loginNameEl, loginEmailEl].forEach((input) => {
+      if (!input) return;
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          submitProfile();
+        }
+      });
+    });
 
     toggles.forEach((toggle) => {
       toggle.addEventListener('click', () => {
@@ -288,8 +456,14 @@
     wireNavigation();
     wireFileInputs();
     wireButtons();
+    applyProfile(currentProfile);
     renderPlan(defaultPlan);
-    showScreen('home');
+    updateSelectedFile(null);
+    if (currentProfile.name && currentProfile.email) {
+      showScreen('home');
+    } else {
+      showScreen('login');
+    }
   }
 
   init();

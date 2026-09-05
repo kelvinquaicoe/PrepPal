@@ -442,7 +442,7 @@ function isValidEmail(email) {
 
 async function sendViaEmail(env, email, message) {
   const apiKey = env.RESEND_API_KEY;
-  const fromEmail = env.RESEND_FROM_EMAIL;
+  const fromEmail = env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   if (!apiKey || !fromEmail) {
     return {
