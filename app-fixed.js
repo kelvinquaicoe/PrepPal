@@ -197,6 +197,7 @@
     }
 
     applyProfile({ name, email }, { persist: true });
+    renderPlan(currentPlan);
     showScreen('home');
   }
 

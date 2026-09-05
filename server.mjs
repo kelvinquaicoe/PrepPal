@@ -440,9 +440,46 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeEnvValue(value) {
+  return String(value || '').trim();
+}
+
+function resolveFromEmail(rawFromEmail) {
+  const fallback = 'PrepPal <onboarding@resend.dev>';
+  const fromEmail = normalizeEnvValue(rawFromEmail);
+
+  if (!fromEmail) {
+    return fallback;
+  }
+
+  const addressMatch = fromEmail.match(/<([^>]+)>$/);
+  const address = normalizeEnvValue(addressMatch ? addressMatch[1] : fromEmail).toLowerCase();
+  const domain = address.split('@')[1] || '';
+  const consumerDomains = new Set([
+    'gmail.com',
+    'googlemail.com',
+    'yahoo.com',
+    'outlook.com',
+    'hotmail.com',
+    'live.com',
+    'icloud.com',
+    'me.com',
+    'mac.com',
+    'aol.com',
+    'proton.me',
+    'protonmail.com'
+  ]);
+
+  if (consumerDomains.has(domain)) {
+    return fallback;
+  }
+
+  return fromEmail;
+}
+
 async function sendViaEmail(env, email, message) {
-  const apiKey = env.RESEND_API_KEY;
-  const fromEmail = env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const apiKey = normalizeEnvValue(env.RESEND_API_KEY);
+  const fromEmail = resolveFromEmail(env.RESEND_FROM_EMAIL);
 
   if (!apiKey || !fromEmail) {
     return {
@@ -477,7 +514,7 @@ async function sendViaEmail(env, email, message) {
   }
 
   if (!response.ok) {
-    const errorMessage = payload?.message || responseText || `Email service request failed with status ${response.status}`;
+    const errorMessage = payload?.message || payload?.error || responseText || `Email service request failed with status ${response.status}`;
     throw new Error(`Email error: ${errorMessage}`);
   }
 
